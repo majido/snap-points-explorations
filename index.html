@@ -1,0 +1,113 @@
+<html>
+
+	<head>
+		<title>Scroll Snap-points demo</title>
+		<style type="text/css">
+			#scroll_container {
+				height: 500px;
+				overflow-y: scroll;
+			}
+			.item {
+				width: 400px;
+				height: 100%;
+				border: solid;
+				background-color: eee;
+			}
+		</style> 
+	</head>
+	<body>
+		<h1>Emulating Snap points implementation using onScroll events</h1>
+
+		<div id="scroll_container">
+			<div class="item"> </div>
+			<div class="item"> </div>
+			<div class="item"> </div>
+			<div class="item"> </div>
+			<div class="item"> </div>
+		</div>
+
+
+	</body>
+
+	<script>
+		var scrollContainer = document.querySelector('#scroll_container');
+
+		scrollContainer.addEventListener('scroll', scrollHandler);
+		scrollContainer.addEventListener('touchbegin', printEvent);
+		scrollContainer.addEventListener('touchend', touchendHandler);
+
+		function printEvent(event) {
+			console.log(event.type);
+			//console.log('scrolltop:', event.target.scrollTop);
+		}
+
+		var isScrolling = false;
+		function scrollHandler(event){
+			isScrolling = true;
+			printEvent(event);
+		}
+
+		function touchendHandler(event){
+			if (!isScrolling) return;
+			isScrolling = false;
+
+			printEvent(event);
+			//implement the custom snap logic
+
+			//determine final destination ignoring the fling.
+			//requires knowing the direction of the scroll.
+
+			console.log('scrollHeight', scrollContainer.scrollHeight);
+			//snap to 50
+			var destinationY = scrollContainer.scrollHeight/2;
+
+			//snap by setting scrollTop
+			window.requestAnimationFrame(setupSnapAnimation(destinationY, 1000));
+
+		}
+
+
+	
+		/**
+		* duration in ms.
+		*/
+		function setupSnapAnimation(destinationY, duration){
+			console.groupCollapsed('snap animation');
+			console.log('animate to scrolltop: %d', destinationY);
+
+			var startTime = getTime(),
+				endTime = startTime + duration;
+
+			var startY = scrollContainer.scrollTop; // current location
+
+			return function animateSnap(hiResTime) {
+
+				var now = getTime();
+
+				if (now >= endTime) { //reached the end of the animation
+					console.groupEnd('snap animations');
+					console.log('set scrollTop to:', scrollContainer.scrollTop); 
+					return;
+				}
+
+				//linear movement
+				var animFrame = (now - startTime) / duration; /* gives between 0 to 1 */
+				//TODO apply easing by modifying animation timing using animFrame
+
+				var step = (destinationY - startY) * animFrame
+				var newY = startY + step;
+
+				console.log('scrollHeight: %d, step: %f, remainingFrames: %f', scrollContainer.scrollTop, step, animFrame);
+				scrollContainer.scrollTop = newY;	//FIXME: this is being overridden by scroller. Find a more appropriate way to do this
+
+				window.requestAnimationFrame(animateSnap);
+			}
+
+		}
+	
+
+		var getTime = Date.now || function() { return new Date().getTime(); };
+		
+
+	</script>
+</html>
