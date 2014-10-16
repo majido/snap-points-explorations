@@ -8,48 +8,84 @@
 				overflow-y: scroll;
 			}
 			.item {
-				width: 400px;
+				box-sizing:border-box;
+				width: 500px;
 				height: 100%;
 				border: solid;
 				background-color: eee;
+				text-align: center;
+				vertical-align: center;
+				font-size: 10em;
 			}
-		</style> 
+		</style>
+		<script src="bower_components/regression-js/src/regression.js" > </script>
+		<script src="velocity_calculator.js" > </script>
+
 	</head>
+
 	<body>
 		<h1>Emulating Snap points implementation using onScroll events</h1>
 
 		<div id="scroll_container">
-			<div class="item"> </div>
-			<div class="item"> </div>
-			<div class="item"> </div>
-			<div class="item"> </div>
-			<div class="item"> </div>
+			<div class="item">1</div>
+			<div class="item">2</div>
+			<div class="item">3</div>
+			<div class="item">4</div>
+			<div class="item">5</div>
 		</div>
 
 
 	</body>
 
 	<script>
+	(function(){
+		"use strict";
+		
 		var scrollContainer = document.querySelector('#scroll_container');
+		var velocityCalculator = new VelocityCalculator(100);
 
 		scrollContainer.addEventListener('scroll', scrollHandler);
-		scrollContainer.addEventListener('touchbegin', printEvent);
-		scrollContainer.addEventListener('touchend', touchendHandler);
+		scrollContainer.addEventListener('touchbegin', touchstartHandler);
+		scrollContainer.addEventListener('touchmove', touchmoveHandler);
+		for (var event of ['touchend','mouseup'])	{
+			scrollContainer.addEventListener(event, touchendHandler);
+		}
+
 
 		function printEvent(event) {
-			console.log(event.type);
-			//console.log('scrolltop:', event.target.scrollTop);
+			console.log('event %s. scrollTop: %d.', event.type, scrollContainer.scrollTop);
 		}
 
+		
 		var isScrolling = false;
-		function scrollHandler(event){
+		
+		function scrollHandler(event) {
 			isScrolling = true;
 			printEvent(event);
+
+			velocityCalculator.addValue(getPosition(), getTime());
 		}
 
+		function touchstartHandler(event) {
+			//reset event buffer for direction/velocity calculation
+			printEvent(event);
+
+			velocityCalculator.reset();
+			velocityCalculator.addValue(getPosition(), getTime());
+		}
+
+		function touchmoveHandler(event) {
+			printEvent(event);
+
+			velocityCalculator.addValue(getPosition(), getTime());
+		}
+
+
 		function touchendHandler(event){
+			//handle first touchend after scrolling is complete
 			if (!isScrolling) return;
 			isScrolling = false;
+
 
 			printEvent(event);
 			//implement the custom snap logic
@@ -57,16 +93,35 @@
 			//determine final destination ignoring the fling.
 			//requires knowing the direction of the scroll.
 
-			console.log('scrollHeight', scrollContainer.scrollHeight);
-			//snap to 50
-			var destinationY = scrollContainer.scrollHeight/2;
+			//snap to closest value
+			var currentY = scrollContainer.scrollTop;
+			var direction = velocityCalculator.getDirection();
+			console.log("Direction: %d", direction);
+
+			var destinationY = calculateSnapPoint(currentY, direction);
+
+			console.log('Snap destination %d is %d pixel further.', destinationY, destinationY - currentY);
 
 			//snap by setting scrollTop
-			window.requestAnimationFrame(setupSnapAnimation(destinationY, 1000));
+			setupSnapAnimation(destinationY, 1000);
 
 		}
 
 
+		function calculateSnapPoint(landingY, direction) {
+			var interval = 500; //500 px
+			var max = scrollContainer.scrollHeight;
+
+			var closest;
+			if (direction >= 0) {
+				closest = Math.ceil(landingY / interval) * interval;
+				closest = Math.min(closest, max);
+			} else {
+				closest = Math.floor(landingY / interval) * interval;
+			}
+
+			return closest;
+		}
 	
 		/**
 		* duration in ms.
@@ -79,35 +134,47 @@
 				endTime = startTime + duration;
 
 			var startY = scrollContainer.scrollTop; // current location
+			var expected = scrollContainer.scrollTop;
 
-			return function animateSnap(hiResTime) {
+			//RAF loop
+
+			window.requestAnimationFrame(animateSnap);
+
+			function animateSnap(hiResTime) {
 
 				var now = getTime();
-
-				if (now >= endTime) { //reached the end of the animation
-					console.groupEnd('snap animations');
-					console.log('set scrollTop to:', scrollContainer.scrollTop); 
-					return;
-				}
+				now = Math.min(now, endTime); // ensures the last frame is always executed
+				
+				var currentY = scrollContainer.scrollTop; //used only for debug purposes
 
 				//linear movement
 				var animFrame = (now - startTime) / duration; /* gives between 0 to 1 */
 				//TODO apply easing by modifying animation timing using animFrame
 
-				var step = (destinationY - startY) * animFrame
-				var newY = startY + step;
+				var step = (destinationY - startY) * animFrame;
+				var newY = Math.floor(startY + step);
 
-				console.log('scrollHeight: %d, step: %f, remainingFrames: %f', scrollContainer.scrollTop, step, animFrame);
-				scrollContainer.scrollTop = newY;	//FIXME: this is being overridden by scroller. Find a more appropriate way to do this
+				console.log('diff: %d, scrollTop: %d, newY: %d, frame: %0.2f', (expected - currentY), currentY, newY, animFrame);
 
-				window.requestAnimationFrame(animateSnap);
+				scrollContainer.scrollTop = expected = newY;	//FIXME: this is being overridden by scroller. Find a more appropriate way to do this
+
+				if (now < endTime) {
+					window.requestAnimationFrame(animateSnap);
+				} else { //reached the end of the animation
+					console.groupEnd('snap animations');
+					console.log('Current scrollTop at %d', scrollContainer.scrollTop); 
+					return;
+				}
 			}
 
 		}
 	
+		var getPosition = function(){
+			return scrollContainer.scrollTop;
+		};
 
 		var getTime = Date.now || function() { return new Date().getTime(); };
-		
+	}());
 
 	</script>
 </html>

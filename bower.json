@@ -1,0 +1,26 @@
+{
+  "name": "Scroll snap points",
+  "version": "0.1",
+  "authors": [
+    "Majid Valipour <majidvp@chromium.org>"
+  ],
+  "description": "Implements snap points for scrolling (See IE -ms-scroll-snap-points-y)",
+  "keywords": [
+    "Scroll",
+    "snap",
+    "points",
+    "demo"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "regression-js": "~1.2.0"
+  }
+}
