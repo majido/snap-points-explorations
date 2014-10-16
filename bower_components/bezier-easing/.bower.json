@@ -1,0 +1,40 @@
+{
+  "name": "bezier-easing",
+  "version": "1.0.0",
+  "authors": [
+    "Matt Styles <matt@veryfizzyjelly.com>",
+    "Gaëtan Renaudeau"
+  ],
+  "description": "Polymer wrapper around bezier-easing",
+  "main": "bezier-easing.html",
+  "keywords": [
+    "Polymer",
+    "web-components",
+    "cubic-bezier",
+    "easing",
+    "timing",
+    "timing",
+    "function",
+    "curve",
+    "animation"
+  ],
+  "license": "WTFPL",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "homepage": "https://github.com/mattstyles/bezier-easing",
+  "_release": "1.0.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "1.0.0",
+    "commit": "cf9e1729bbcacd40fa81c3360d2736bc62b3a3fd"
+  },
+  "_source": "git://github.com/mattstyles/bezier-easing.git",
+  "_target": "~1.0.0",
+  "_originalSource": "bezier-easing",
+  "_direct": true
+}

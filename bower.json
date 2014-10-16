@@ -21,6 +21,7 @@
     "tests"
   ],
   "dependencies": {
-    "regression-js": "~1.2.0"
+    "regression-js": "~1.2.0",
+    "bezier-easing": "~1.0.0"
   }
 }

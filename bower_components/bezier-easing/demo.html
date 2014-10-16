@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Bezier-easing Demo</title>
+
+    <script src="../platform/platform.js"></script>
+
+    <link rel="import" href="bezier-easing.html">
+
+</head>
+<body unresolved>
+
+    <p>An example of using <code>&lt;bezier-easing></code>:</p>
+
+    <bezier-easing id="round-ease-in" x1="0" x2=".5" y1=".5" y2="1"></bezier-easing>
+
+    <script charset="utf-8">
+        document.addEventListener( 'polymer-ready', function() {
+            var t;
+            var easing = document.querySelector( '#round-ease-in' );
+
+            for ( t = 0; t <= 1; t = t + .1 ) {
+                console.log( easing.calc( t ) );
+            }
+        });
+    </script>
+
+</body>
+</html>

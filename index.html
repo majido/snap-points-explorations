@@ -19,6 +19,8 @@
 			}
 		</style>
 		<script src="bower_components/regression-js/src/regression.js" > </script>
+		<script src="bower_components/bezier-easing/bezier-easing.js" > </script>
+
 		<script src="velocity_calculator.js" > </script>
 
 	</head>
@@ -40,9 +42,14 @@
 	<script>
 	(function(){
 		"use strict";
-		
+
 		var scrollContainer = document.querySelector('#scroll_container');
 		var velocityCalculator = new VelocityCalculator(100);
+
+		// TODO: consult with tdresser to ensure if this has any real effect
+		document.addEventListener('scroll', function() {
+      		// Make 100% sure chrome knows we have a scroll listener.
+    	});
 
 		scrollContainer.addEventListener('scroll', scrollHandler);
 		scrollContainer.addEventListener('touchbegin', touchstartHandler);
@@ -103,7 +110,9 @@
 			console.log('Snap destination %d is %d pixel further.', destinationY, destinationY - currentY);
 
 			//snap by setting scrollTop
-			setupSnapAnimation(destinationY, 1000);
+			//var easing = window.BezierEasing.css['ease-out'];
+			var easing = window.BezierEasing(0.215, 0.61, 0.355, 1); //easeOutCubic
+			setupSnapAnimation(destinationY, 1000, easing);
 
 		}
 
@@ -126,9 +135,11 @@
 		/**
 		* duration in ms.
 		*/
-		function setupSnapAnimation(destinationY, duration){
+		function setupSnapAnimation(destinationY, duration, easing){
 			console.groupCollapsed('snap animation');
 			console.log('animate to scrolltop: %d', destinationY);
+
+			easing = easing || function(t){return t;};//default to linear easing
 
 			var startTime = getTime(),
 				endTime = startTime + duration;
@@ -148,13 +159,13 @@
 				var currentY = scrollContainer.scrollTop; //used only for debug purposes
 
 				//linear movement
-				var animFrame = (now - startTime) / duration; /* gives between 0 to 1 */
-				//TODO apply easing by modifying animation timing using animFrame
+				var animTime = (now - startTime) / duration; // time is the time between 0 to 1
 
-				var step = (destinationY - startY) * animFrame;
+				var step = (destinationY - startY) * easing(animTime);	//apply easing by modifying animation timing using animFrame
+
 				var newY = Math.floor(startY + step);
 
-				console.log('diff: %d, scrollTop: %d, newY: %d, frame: %0.2f', (expected - currentY), currentY, newY, animFrame);
+				console.log('diff: %d, scrollTop: %d, newY: %d, frame: %0.2f', (expected - currentY), currentY, newY, animTime);
 
 				scrollContainer.scrollTop = expected = newY;	//FIXME: this is being overridden by scroller. Find a more appropriate way to do this
 

@@ -1,0 +1,144 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+Wrapper around [bezier-easing](https://github.com/gre/bezier-easing)
+
+##### Example
+
+    <bezier-easing x1="0" x2=".5" y1=".5" y2="1"></bezier-easing>
+
+    var easing = document.querySelector( 'bezier-easing' );
+    easing.calc( .25 );
+
+@element bezier-easing
+@blurb Wraps bezier-easing module into a Polymer element
+-->
+<polymer-element name="bezier-easing">
+
+
+    <script charset="utf-8">
+        /**
+         * Quick module wrapper to stop BezierEasing leaking to global
+         */
+        (function( global ) {
+            if ( !global.module && !global.require && !global.exports ) {
+                var modules = [];
+                global.exports = {};
+
+                global.module = {
+                    require: function( mod ) {
+                        return modules;
+                    }
+                };
+                Object.defineProperty( global.module, 'exports', {
+                    set: function( mod ) {
+                        modules.push( mod );
+                    }
+                });
+            }
+
+        })( this );
+    </script>
+
+    <script src="./bezier-easing.js"></script>
+
+    <script charset="utf-8">
+        Polymer( 'bezier-easing', {
+
+            /**
+             * The raw BezierEasing function
+             */
+            BezierEasing: null,
+
+            /**
+             * The curve function used to calculate easing
+             *
+             * @private
+             * @type BezierEasing
+             */
+            _curve: null,
+
+            publish: {
+
+                /**
+                 * @attribute
+                 * @type Float
+                 */
+                x1: {
+                    value: 0,
+                    reflect: true
+                },
+
+
+                /**
+                 * @attribute
+                 * @type Float
+                 */
+                x2: {
+                    value: 0,
+                    reflect: true
+                },
+
+
+                /**
+                 * @attribute
+                 * @type Float
+                 */
+                y1: {
+                    value: 1,
+                    reflect: true
+                },
+
+
+                /**
+                 * @attribute
+                 * @type Float
+                 */
+                y2: {
+                    value: 1,
+                    reflect: true
+                }
+            },
+
+            /**
+             * Fired when polymer has set everything up and the element is ready.
+             * Grabs the BezierEasing function and sets up the curve
+             */
+            ready: function() {
+                this.BezierEasing = module.require()[ 0 ];
+                this.updateCurve();
+            },
+
+
+            /**
+             * Observers to update th cached curve whenever a point changes
+             */
+            observe: {
+                x1: 'updateCurve',
+                x2: 'updateCurve',
+                y1: 'updateCurve',
+                y2: 'updateCurve'
+            },
+
+
+            /**
+             * Fired when a bezier point attribute changes and updates the cached curve
+             */
+            updateCurve: function() {
+                this._curve = this.BezierEasing( this.x1, this.x2, this.y1, this.y2 );
+            },
+
+
+            /**
+             * Calculates the progression given a time
+             * Time will usually be in the 0 <= t <= 1 range
+             *
+             * @param time {Float}
+             * @return {Float} the progression value, clamped 0...1
+             */
+            calc: function( time ) {
+                return this._curve( time );
+            }
+
+        });
+    </script>
