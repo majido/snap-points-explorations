@@ -27,8 +27,15 @@
         </head>
 
         <body>
-                <h1>Emulating Snap points implementation using onScroll events</h1>
-
+                <h1>Emulating Snap Points - Demo</h1>
+                <label>Fling mode</label>
+                <select id="fling_mode">
+                  <option value="ignore">Ignore</option>
+                  <option value="max">Max</option>
+                  <option value="append">Append</option>
+                </select>
+                <br>
+                <br>
                 <div id="scroll_container">
                         <div class="item">1</div>
                         <div class="item">2</div>
@@ -44,15 +51,22 @@
         (function(){
                 "use strict";
 
-                var scrollContainer = document.querySelector('#scroll_container'); 
-                var ssnap = new ScrollSnap(scrollContainer, {
-                  flingTreatement: "ignore",
+                var $scrollContainer = document.querySelector('#scroll_container'); 
+                var ssnap = new ScrollSnap($scrollContainer, {
+                  flingMode: "ignore",
                   interval: 500 /* snap points are at 500 pixel intervals*/
                 });
 
                 // TODO: consult with tdresser to ensure if this has any real effect
                 document.addEventListener('scroll', function() {
                   // Make 100% sure chrome knows we have a scroll listener.
+                });
+
+
+                var $ft = document.querySelector('#fling_mode');
+                $ft.addEventListener('change', function(event){
+                  var flingMode = event.target.value;
+                  ssnap.setOptions({flingMode:flingMode});
                 });
 
         }());

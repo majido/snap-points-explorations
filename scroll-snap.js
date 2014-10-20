@@ -1,10 +1,13 @@
 /**
  * Create a scroll snap object
  */
-function ScrollSnap(scrollContainer, options) {
+function ScrollSnap(scrollContainer, opts) {
   "use strict";
-  // TODO add default values for options
-  this.options = options;
+
+  // default values for options
+  var options = {flingMode: 'ignore', interval: 500};
+  extend(options, opts);
+
   this.scrollContainer = scrollContainer;
 
   var velocityCalculator = new VelocityCalculator(100);
@@ -18,11 +21,6 @@ function ScrollSnap(scrollContainer, options) {
     scrollContainer.addEventListener(event, touchendHandler);
   }
 
-
-  function printEvent(event) {
-    console.log('event %s. scrollTop: %d.', event.type,
-                scrollContainer.scrollTop);
-  }
 
   function scrollHandler(event) {
     isScrolling = true;
@@ -53,54 +51,63 @@ function ScrollSnap(scrollContainer, options) {
 
     printEvent(event);
 
-    if (options.flingTreatement == "ignore" ||
-        options.flingTreatement == "max") {
+    if (options.flingMode == "ignore" || options.flingMode == "max") {
       snap();
-    } else if (options.flingTreatement == "post-fling") {
-      waitForFlingEnd();
+    } else if (options.flingMode == "append") {
+      waitForFlingEnd(function() {
+        // fling is done so snap in the reverse direction
+        var rdirection = -1 * velocityCalculator.getDirection();
+        snap(rdirection);
+      });
     }
   }
 
-  function waitForFlingEnd() {
+  /**
+   * Detect that scroll fling is over and invoke callback
+   */
+  function waitForFlingEnd(callback) {
     var previousY = getPosition();
     var zeroDeltaCount = 0;
 
-    // End of scroll fling is detected when there are not any change
-    window.requestAnimationFrame(flingWaitLoop);
-
-    console.groupCollapsed('fling wait');
-    function flingWaitLoop(hiResTime) {
+    // End of scroll fling is detected when the scrollTop has stablized
+    var flingWaitLoopTimer = window.setInterval(function() {
       var currentY = getPosition();
       var delta = currentY - previousY;
-      console.log('delta: %d, scrolltop: %d', delta, currentY);
       previousY = currentY;
-      if (delta == 0) zeroDeltaCount += 1;
 
-      if (zeroDeltaCount < 5)
-        window.requestAnimationFrame(flingWaitLoop);
-      else
-        console.groupEnd('fling wait');
-    }
+      if (delta === 0) {
+        zeroDeltaCount += 1;
+      }
+
+      if (zeroDeltaCount >= 2) {
+        window.clearInterval(flingWaitLoopTimer);
+        console.log('Observed %d zero scroll delta. Assume fling is over.',
+                    zeroDeltaCount);
+        callback();
+      }
+    }, 16);
   }
 
 
   /* Implement custom snap logic */
   function snap(direction) {
-    // determine final destination ignoring the fling.
 
     // snap to closest value
+    direction = direction || velocityCalculator.getDirection();
     var currentY = scrollContainer.scrollTop;
-    var direction = direction || velocityCalculator.getDirection();
     var destinationY = calculateSnapPoint(currentY, direction);
 
     console.log("Direction: %d", direction);
     console.log('Snap destination %d is %d pixel further.', destinationY,
                 destinationY - currentY);
 
-    // snap by setting scrollTop
     // var easing = window.BezierEasing.css['ease-out'];
     var easing = window.BezierEasing(0.215, 0.61, 0.355, 1);  // easeOutCubic
-    setupSnapAnimation(destinationY, 1000, easing);
+    if (options.flingMode == "append") {
+      easing = window.BezierEasing.css["ease-in-out"];
+    }
+
+    animateSnap(destinationY, 1000, easing);
   }
 
   function calculateSnapPoint(landingY, direction) {
@@ -119,9 +126,11 @@ function ScrollSnap(scrollContainer, options) {
   }
 
   /**
-  * duration in ms.
+  * Setup necessary RAF loop for snap animation to reach snap destination
+  * @destinationY the destination
+  * @duration snap animation duration in ms.
   */
-  function setupSnapAnimation(destinationY, duration, easing) {
+  function animateSnap(destinationY, duration, easing) {
     console.groupCollapsed('snap animation');
     console.log('animate to scrolltop: %d', destinationY);
 
@@ -129,22 +138,20 @@ function ScrollSnap(scrollContainer, options) {
 
     var startTime = getTime(), endTime = startTime + duration;
 
-    var startY = scrollContainer.scrollTop;  // current location
-    var expected = scrollContainer.scrollTop;
+    var startY = getPosition();  // current location
+    var expected = startY;
 
     // RAF loop
+    window.requestAnimationFrame(animateSnapLoop);
 
-    window.requestAnimationFrame(animateSnap);
-
-    function animateSnap(hiResTime) {
+    function animateSnapLoop(hiResTime) {
       var now = getTime();
       // ensures the last frame is always executed
       now = Math.min(now, endTime);
 
       var currentY = scrollContainer.scrollTop;  // used only for debug purposes
-      // linear movement
-      var animTime =
-          (now - startTime) / duration;  // time is the time between 0 to 1
+      // time is the time between 0 to 1
+      var animTime = (now - startTime) / duration;
       var step = (destinationY - startY) *
                  easing(animTime);  // apply easing by modifying animation
                                     // timing using animFrame
@@ -154,11 +161,9 @@ function ScrollSnap(scrollContainer, options) {
                   (expected - currentY), currentY, newY, animTime);
 
 
-      if (options.flingTreatement == "ignore") {
-        // do nothing
-      } else if (options.flingTreatement == "max") {
-        // a simplistic way to avoid jank by choosing the closest value to
-        // destination between animation and native fling.
+      if (options.flingMode == "max") {
+        // A simplistic way to avoid jank is to choose the closest value to
+        // destination between animation and native scroll fling.
         // The curve becomes the union of two curves which may not be smooth at
         // all.
         var direction = velocityCalculator.getDirection();
@@ -166,9 +171,6 @@ function ScrollSnap(scrollContainer, options) {
           newY = Math.max(newY, currentY);
         else
           newY = Math.min(newY, currentY);
-      } else {
-        console.warn("flingTreatement %s is not supported.",
-                     options.flingTreatement);
       }
 
       // FIXME: this is being overridden by scroller. Find a more
@@ -176,18 +178,30 @@ function ScrollSnap(scrollContainer, options) {
       scrollContainer.scrollTop = expected = newY;
 
       if (now < endTime) {
-        window.requestAnimationFrame(animateSnap);
+        window.requestAnimationFrame(animateSnapLoop);
       } else {  // reached the end of the animation
         console.groupEnd('snap animations');
-        console.log('Current scrollTop at %d', scrollContainer.scrollTop);
+        console.log('Current scrollTop at %d', getPosition());
         return;
       }
     }
   }
   // Utility functions
-  function getPosition() { return scrollContainer.scrollTop; };
   var getTime = Date.now || function() { return new Date().getTime(); };
 
+  function getPosition() { return scrollContainer.scrollTop; }
+
+  function printEvent(event) {
+    console.log('event %s. scrollTop: %d.', event.type, getPosition());
+  }
+  // TODO: move to a utility module
+  function extend(obj, source) {
+    for (var prop in source) {
+      obj[prop] = source[prop];
+    }
+  }
+
+  this.setOptions = function(opts) { extend(options, opts); };
 
   return this;
 }
