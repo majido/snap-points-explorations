@@ -12,6 +12,10 @@ function ScrollSnap(scrollContainer, opts) {
 
   var velocityCalculator = new VelocityCalculator(100);
   var isScrolling = false;
+  var isSnapping = false;
+
+  //Track scrollTop value calculated by snap point. The value will be used to override scroll value;
+  var expectedScrollTop;
 
   // setup event handlers
   scrollContainer.addEventListener('scroll', scrollHandler);
@@ -26,7 +30,14 @@ function ScrollSnap(scrollContainer, opts) {
     isScrolling = true;
     printEvent(event);
 
-    velocityCalculator.addValue(getPosition(), getTime());
+    if (isSnapping) {
+      //prevent fling by setting the scrollTopvalue
+      scrollContainer.scrollTop = expectedScrollTop;
+    } else {
+      velocityCalculator.addValue(getPosition(), getTime());
+
+    } 
+
   }
 
   function touchstartHandler(event) {
@@ -97,9 +108,14 @@ function ScrollSnap(scrollContainer, opts) {
     var currentY = scrollContainer.scrollTop;
     var destinationY = calculateSnapPoint(currentY, direction);
 
-    console.log("Direction: %d", direction);
-    console.log('Snap destination %d is %d pixel further.', destinationY,
-                destinationY - currentY);
+    if (destinationY === currentY) {
+      console.log('Already at snap target so no snap animation is required.');
+      return;
+    }
+
+    console.log('Snap destination %d is %d pixel further. Direction: %d', destinationY,
+                destinationY - currentY, direction);
+    
 
     // var easing = window.BezierEasing.css['ease-out'];
     var easing = window.BezierEasing(0.215, 0.61, 0.355, 1);  // easeOutCubic
@@ -107,7 +123,12 @@ function ScrollSnap(scrollContainer, opts) {
       easing = window.BezierEasing.css["ease-in-out"];
     }
 
-    animateSnap(destinationY, 1000, easing);
+    //TODO consider emitting snap:start event
+    isSnapping = true;
+    animateSnap(destinationY, 1000, easing,function onComplete(){
+      //TODO consider emitting snap:complete event
+      isSnapping = false;
+    });
   }
 
   function calculateSnapPoint(landingY, direction) {
@@ -130,7 +151,7 @@ function ScrollSnap(scrollContainer, opts) {
   * @destinationY the destination
   * @duration snap animation duration in ms.
   */
-  function animateSnap(destinationY, duration, easing) {
+  function animateSnap(destinationY, duration, easing, onCompleteCallback) {
     console.groupCollapsed('snap animation');
     console.log('animate to scrolltop: %d', destinationY);
 
@@ -139,7 +160,7 @@ function ScrollSnap(scrollContainer, opts) {
     var startTime = getTime(), endTime = startTime + duration;
 
     var startY = getPosition();  // current location
-    var expected = startY;
+    expectedScrollTop = startY;
 
     // RAF loop
     window.requestAnimationFrame(animateSnapLoop);
@@ -158,7 +179,7 @@ function ScrollSnap(scrollContainer, opts) {
       var newY = Math.floor(startY + step);
 
       console.log('diff: %d, scrollTop: %d, newY: %d, frame: %0.2f',
-                  (expected - currentY), currentY, newY, animTime);
+                  (expectedScrollTop - currentY), currentY, newY, animTime);
 
 
       if (options.flingMode == "max") {
@@ -173,15 +194,16 @@ function ScrollSnap(scrollContainer, opts) {
           newY = Math.min(newY, currentY);
       }
 
-      // FIXME: this is being overridden by scroller. Find a more
+      // TODO: this is being overridden by scroller. Find a more
       // appropriate way to do this
-      scrollContainer.scrollTop = expected = newY;
+      scrollContainer.scrollTop = expectedScrollTop = newY;
 
       if (now < endTime) {
         window.requestAnimationFrame(animateSnapLoop);
       } else {  // reached the end of the animation
         console.groupEnd('snap animations');
         console.log('Current scrollTop at %d', getPosition());
+        if (onCompleteCallback) onCompleteCallback();
         return;
       }
     }
