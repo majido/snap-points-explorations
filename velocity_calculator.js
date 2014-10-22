@@ -11,7 +11,7 @@ function VelocityCalculator(bufferSize) {
   this.addValue = function(y, ms) {
     data.push([ms, y]);
     while (data.length > bufferSize ||
-           (data.length > 1 && ms - data[0][0] > 100)) {
+           (data.length > 1 && ms - data[0][0] > 1000)) {
       data.shift();
     }
   };
@@ -42,17 +42,32 @@ function VelocityCalculator(bufferSize) {
       //      console.log("Position\t", newestPosition - data[i][1]);
       //      console.log("Time\t", newestTime - data[i][0]);
     }
+    
 
-    var regression_result = window.regression('polynomial', usable_data);
     // Return velocity at last point.
-    var result = -2 * usable_data[usable_data.length - 1][0] *
-                     regression_result.equation[2] +
-                 regression_result.equation[1] * 1000;
+    // var regression_result = window.regression('polynomial', usable_data);
+
+    // var lastPointTime = usable_data[usable_data.length - 1][0];
+    // var result = 2 * lastPointTime * regression_result.equation[2] +
+    //              regression_result.equation[1] * 1000;
+
+    var regression_result = window.regression('linear', usable_data);
+    var result = regression_result.equation[0] * 1000;
+    
+    //console.log("sample size:"+ usable_data.length, " result:"+ regression_result.string);
+
 
     if (isNaN(result)) {
       return 0;
     }
     //    console.log("VELOCITY IS " + result);
     return result;
+  };
+
+  this.getTime = function(){
+    if (data.length)
+      return data[data.length - 1][0];
+    else
+      return 0;
   };
 }
