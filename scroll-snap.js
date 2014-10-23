@@ -11,6 +11,8 @@ function ScrollSnap(scrollContainer, opts) {
   this.scrollContainer = scrollContainer;
 
   var touchVelocityCalculator = new VelocityCalculator(20);
+  var svc = new VelocityCalculator(20);
+
 
 
   var flingCurve;
@@ -23,7 +25,7 @@ function ScrollSnap(scrollContainer, opts) {
 
   // setup event handlers
   scrollContainer.addEventListener('scroll', scrollHandler);
-  scrollContainer.addEventListener('touchbegin', touchstartHandler);
+  scrollContainer.addEventListener('touchstart', touchstartHandler);
   scrollContainer.addEventListener('touchmove', touchmoveHandler);
   for (var event of['touchend', 'mouseup']) {
     scrollContainer.addEventListener(event, touchendHandler);
@@ -32,10 +34,12 @@ function ScrollSnap(scrollContainer, opts) {
 
   function scrollHandler(event) {
     didScroll = true;
+    svc.addValue(getPosition(), event.timeStamp);
+
     printEvent(event);
 
     if (isSnapping) {
-      console.log("delta = %d", scrollContainer.scrollTop - expectedScrollTop);
+      console.log("snap delta = %d", scrollContainer.scrollTop - expectedScrollTop);
 
       //prevent fling by setting the scrollTop value with our own
       if (scrollContainer.scrollTop != expectedScrollTop) {
@@ -53,8 +57,9 @@ function ScrollSnap(scrollContainer, opts) {
     // reset event buffer for direction/velocity calculation
     printEvent(event);
     touchVelocityCalculator.reset();
-    isSnapping = false;
+    svc.reset();
 
+    isSnapping = false;
     recordTouch(event);
   }
 
@@ -65,48 +70,23 @@ function ScrollSnap(scrollContainer, opts) {
 
   }
 
-  function recordTouch(event){
-    if (event.changedTouches)
-      touchVelocityCalculator.addValue(-event.changedTouches[0].clientY, event.timeStamp);
-  }
 
   function touchendHandler(event) {
-   
+    printEvent(event);
     // handle first touchend after scrolling is complete
     if (!didScroll) return;
-   
     recordTouch(event);
     printEstimates();
+    
     console.log("----------------------------");
 
     snap();
    }
 
-  // /**
-  //  * Detect that scroll fling is over and invoke callback. Only works when we do not manipulate scrollTop.
-  //  */
-  // function waitForFlingEnd(callback) {
-  //   var previousY = getPosition();
-  //   var zeroDeltaCount = 0;
-
-  //   // End of scroll fling is detected when the scrollTop has stablized
-  //   var flingWaitLoopTimer = window.setInterval(function() {
-  //     var currentY = getPosition();
-  //     var delta = currentY - previousY;
-  //     previousY = currentY;
-
-  //     if (delta === 0) {
-  //       zeroDeltaCount += 1;
-  //     }
-
-  //     if (zeroDeltaCount >= 2) {
-  //       window.clearInterval(flingWaitLoopTimer);
-  //       console.log('Observed %d zero scroll delta. Assume fling is over.',
-  //                   zeroDeltaCount);
-  //       callback();
-  //     }
-  //   }, 16);
-  // }
+  function recordTouch(event){
+    if (event.changedTouches)
+      touchVelocityCalculator.addValue(-event.changedTouches[0].clientY, event.timeStamp);
+  }
 
 
   /* Implement custom snap logic */
@@ -143,6 +123,7 @@ function ScrollSnap(scrollContainer, opts) {
     console.log('Overshoot by factor %f', overshootFactor);
     //easing = bezierWithInitialVelocity(velocity, overshootFactor);
 
+
     //TODO consider emitting snap:start event
     isSnapping = true;
     animateSnap(destinationY, 0, duration, easing, function onComplete(){
@@ -163,6 +144,9 @@ function ScrollSnap(scrollContainer, opts) {
 
     return closest;
   }
+
+
+
 
   /**
   * Setup necessary RAF loop for snap animation to reach snap destination
@@ -193,20 +177,18 @@ function ScrollSnap(scrollContainer, opts) {
         didScroll = false;
         lastScrollEventTime = now;  
       }
-      
-      //Schedule new frames until we know that there is no more scroll for at least 3 frames
-      // This ensures browser fling is fully suppressed.
 
-      if (now - lastScrollEventTime < 3*16 /*now < endTime*/) {
+
+      //Schedule new frames until we know that there is no more scroll for at least 3 frames
+      //This ensures browser fling is fully suppressed. The animation may be stopped when a 
+      //new touchstart event is registered too 
+      if (isSnapping && (now - lastScrollEventTime < 3*16 || now < endTime)) {
         window.requestAnimationFrame(animateSnapLoop);
       } else {  // reached the end of the animation
-        console.groupEnd('snap animations');
-        console.log('Current scrollTop at %d', getPosition());
-        if (onCompleteCallback) onCompleteCallback();
-        return;
+        pauseAnimation();
+        return; 
       }
-
-
+      
       // ensures the last frame is always executed
       now = Math.min(now, endTime);
 
@@ -236,7 +218,12 @@ function ScrollSnap(scrollContainer, opts) {
       // TODO: this is being overridden by scroller. Find a more
       // appropriate way to do this
       scrollContainer.scrollTop = expectedScrollTop = newY;
-      
+    }
+
+    function pauseAnimation(){
+      console.groupEnd('snap animations');
+      console.log('Current scrollTop at %d', getPosition());
+      if (onCompleteCallback) onCompleteCallback();
     }
   }
 
@@ -258,7 +245,6 @@ function ScrollSnap(scrollContainer, opts) {
   var tp, pp;
   function printEvent(event) {
     var p = getPosition();
-    var touchP = event.changedTouches? event.changedTouches[0].clientY:-1;
     var t = getTime();
     var velocity = pp ? (p - pp)/(t-tp) * 1000 : 0;
 

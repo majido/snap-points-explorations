@@ -1,6 +1,8 @@
 // Time in in ms, velocity out in pixels per second.
-function VelocityCalculator(bufferSize) {
+function VelocityCalculator(bufferSize, type) {
   "use strict";
+
+  type = type || 'linear';
 
   var data = [];
 
@@ -43,16 +45,19 @@ function VelocityCalculator(bufferSize) {
       //      console.log("Time\t", newestTime - data[i][0]);
     }
     
+    if(type == 'polynomial') {
 
-    // Return velocity at last point.
-    // var regression_result = window.regression('polynomial', usable_data);
+      // Return velocity at last point.
+      var regression_result = window.regression('polynomial', usable_data);
 
-    // var lastPointTime = usable_data[usable_data.length - 1][0];
-    // var result = 2 * lastPointTime * regression_result.equation[2] +
-    //              regression_result.equation[1] * 1000;
-
-    var regression_result = window.regression('linear', usable_data);
-    var result = regression_result.equation[0] * 1000;
+      var lastPointTime = usable_data[usable_data.length - 1][0];
+      var result = 2 * lastPointTime * regression_result.equation[2] +
+                   regression_result.equation[1] * 1000;
+                   
+    } else if (type == 'linear') { //Use linear
+      var regression_result = window.regression('linear', usable_data);
+      var result = regression_result.equation[0] * 1000;
+    }
     
     //console.log("sample size:"+ usable_data.length, " result:"+ regression_result.string);
 
