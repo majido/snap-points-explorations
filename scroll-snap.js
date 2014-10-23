@@ -4,10 +4,10 @@
 function ScrollSnap(scrollContainer, opts) {
   "use strict";
 
-  var VELOCITY_THRESHOLD = 200; //px/s
+  var VELOCITY_THRESHOLD = 300; //px/s
 
   // default values for options
-  var options = extend({interval: 500}, opts);
+  var options = extend({interval: 500, mode: 'horizontal'}, opts);
   
   var touchVelocityCalculator = new VelocityCalculator(20);
   var svc = new VelocityCalculator(5, 'linear');
@@ -281,16 +281,23 @@ function ScrollSnap(scrollContainer, opts) {
   // Utility functions
   var getTime = Date.now || function() { return new Date().getTime(); };
 
-  function getPosition() { return scrollContainer.scrollTop; }
-  function getMaxPosition(){return scrollContainer.scrollHeight;}
-  function setPosition(position) { scrollContainer.scrollTop = position; }
+  var getPosition = function() { return scrollContainer.scrollTop; };
+  var getMaxPosition = function(){return scrollContainer.scrollHeight;};
+  var setPosition = function(position) { scrollContainer.scrollTop = position; };
+  
+  if (options.mode == 'horizontal') {
+    getPosition = function() { return scrollContainer.scrollLeft; };
+    getMaxPosition = function(){return scrollContainer.scrollWidth;};
+    setPosition = function(position) { scrollContainer.scrollLeft = position; };
+  }
+  
 
 
   function printEvent(event) {
     var p = getPosition();
     var t = getTime();
 
-    console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d', event.type, p, svc.getLastVelocity(), svc.getVelocity());
+    //console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d', event.type, p, svc.getLastVelocity(), svc.getVelocity());
   }
 
   // TODO: move to a utility module
@@ -306,7 +313,6 @@ function ScrollSnap(scrollContainer, opts) {
     //print(velocityCalculator, "** SCROLL");
     print(svc, "** TOUCH");
     
-
     function print(velocityCalculator, label){
       var velocity = velocityCalculator.getVelocity();
       var position = getPosition();

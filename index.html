@@ -3,20 +3,39 @@
         <head>
                 <title>Scroll Snap-points demo</title>
                 <style type="text/css">
-                        #scroll_container {
-                                height: 500px;
-                                overflow-y: scroll;
-                        }
-                        .item {
-                                box-sizing:border-box;
-                                width: 500px;
-                                height: 100%;
-                                border: solid;
-                                background-color: eee;
-                                text-align: center;
-                                vertical-align: center;
-                                font-size: 10em;
-                        }
+                    .scrollContainer.vertical{
+                        height: 500px;
+                        width: 500px;
+                        display: flex;
+                        flex-direction: column;
+                        flex-wrap: nowrap;
+
+                        overflow-x: hidden;
+                        overflow-y: scroll;
+                    }
+
+                    .scrollContainer.horizontal {
+                    	height: 500px;
+                        width: 500px;
+                        display: flex;
+                        flex-direction: row;
+                        flex-wrap: nowrap;
+
+                        overflow-x: scroll;
+                        overflow-y: hidden;
+                    }
+                    .item {
+                        box-sizing:border-box;
+                        min-width: 100%;
+                        min-height: 100%;
+                        border: solid;
+                        background-color: eee;
+                        text-align: center;
+                        vertical-align: center;
+                        font-size: 10em;
+                    }
+
+            
                 </style>
                 <script src="bower_components/regression-js/src/regression.js" > </script>
                 <script src="bower_components/bezier-easing/bezier-easing.js" > </script>
@@ -38,17 +57,27 @@
                 </select>
                 <br>
                 <br>
-                <div id="scroll_container">
-                        <div class="item">1</div>
-                        <div class="item">2</div>
-                        <div class="item">3</div>
-                        <div class="item">4</div>
-                        <div class="item">5</div>
-                        <div class="item">6</div>
-                        <div class="item">7</div>
-                        <div class="item">8</div>
-                        <div class="item">9</div>
-                        <div class="item">10</div>
+                <h2>Horizontal</h2>
+                <div class="scrollContainer horizontal">
+                    <div class="item">1</div>
+                    <div class="item">2</div>
+                    <div class="item">3</div>
+                    <div class="item">4</div>
+                    <div class="item">5</div>
+                    <div class="item">6</div>
+                    <div class="item">7</div>
+                    <div class="item">8</div>
+                    <div class="item">9</div>
+                    <div class="item">10</div>
+                </div>
+
+                <h2>Vertical</h2>
+
+                <div class="scrollContainer vertical">
+                    <div class="item">1</div>
+                    <div class="item">2</div>
+                    <div class="item">3</div>
+                    <div class="item">4</div>
                 </div>
 
 
@@ -58,9 +87,15 @@
         (function(){
                 "use strict";
 
-                var $scrollContainer = document.querySelector('#scroll_container'); 
-                var ssnap = new ScrollSnap($scrollContainer, {
-                  flingMode: "ignore",
+                var $vscrollContainer = document.querySelector('.scrollContainer.vertical'); 
+                var vsnap = new ScrollSnap($vscrollContainer, {
+                  mode: "vertical",
+                  interval: 500 /* snap points are at 500 pixel intervals*/
+                });
+
+                var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
+				var hsnap = new ScrollSnap($hscrollContainer, {
+                  mode: "horizontal",
                   interval: 500 /* snap points are at 500 pixel intervals*/
                 });
 
@@ -70,11 +105,11 @@
                 });
 
 
-                var $ft = document.querySelector('#fling_mode');
-                $ft.addEventListener('change', function(event){
-                  var flingMode = event.target.value;
-                  ssnap.setOptions({flingMode:flingMode});
-                });
+                // var $ft = document.querySelector('#fling_mode');
+                // $ft.addEventListener('change', function(event){
+                //   var flingMode = event.target.value;
+                //   ssnap.setOptions({flingMode:flingMode});
+                // });
 
         }());
 
