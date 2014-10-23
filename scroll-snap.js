@@ -1,5 +1,11 @@
 /**
- * Create a scroll snap object
+ * Scroll snap class is responsible to provide snap point behaviour for a given container.
+ * The following options are accepted:
+ * - mode: ['horizontal'|'vertical'] default: horizontal
+ * - interval: [integer],  snap intervals in pixel, default: 300
+ *
+ * TODO: replace interval with a generic mechanims to define snap points.
+ * TODO: get rid of px/s speeds and instead use only px/ms to avoid confusion
  */
 function ScrollSnap(scrollContainer, opts) {
   "use strict";
@@ -7,7 +13,7 @@ function ScrollSnap(scrollContainer, opts) {
   var VELOCITY_THRESHOLD = 300; //px/s
 
   // default values for options
-  var options = extend({interval: 500, mode: 'horizontal'}, opts);
+  var options = extend({interval: 300, mode: 'horizontal'}, opts);
   
   var touchVelocityCalculator = new VelocityCalculator(20);
   var svc = new VelocityCalculator(5, 'linear');
@@ -17,7 +23,7 @@ function ScrollSnap(scrollContainer, opts) {
   var isSnapping = false;
 
   //Track scrollTop value calculated by snap point. The value will be used to override scroll value;
-  var expectedScrollTop;
+  var expectedScrollP;
 
   // setup event handlers
   scrollContainer.addEventListener('scroll', scrollHandler);
@@ -26,23 +32,23 @@ function ScrollSnap(scrollContainer, opts) {
   scrollContainer.addEventListener('touchend', touchendHandler);
 
   function scrollHandler(event) {
+    //use native scroll values in speed estimation
     recordScroll(event);
 
     printEvent(event);
     didScroll = true;
     
     if (isSnapping) {
-      //console.log("Snap delta = %d", getPosition() - expectedScrollTop);
-      //prevent scroll fling by setting the scrollTop value with the one calculated by the snap
-      if (getPosition != expectedScrollTop) {
-        setPosition(expectedScrollTop);
+      //console.log("Snap delta = %d", getPosition() - expectedScrollP);
+      //prevent scroll fling by replacing the native the scroll position with the one calculated by snap animation
+      if (getPosition() != expectedScrollP) {
+        setPosition(expectedScrollP);
       }
-      
     } else {
       //trigger snap when scroll has slowed down
       var scrollVelocity = svc.getVelocity();
       if (scrollVelocity && Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
-        console.log("SNAP with scroll speed: %d", scrollVelocity);
+        //console.log("snap with scroll speed: %d", scrollVelocity);
         snap();
       }
     } 
@@ -118,19 +124,14 @@ function ScrollSnap(scrollContainer, opts) {
     var duration = snapDuration + flingDuration;
 
 
-    console.log("----------------------------");
     console.log('current: %d, estimated: %d, snap point: %d (duration: %d + %d).', currentP, flingFinalP, endP, flingDuration, snapDuration);
-    console.log("----------------------------");
 
 
     if (endP === currentP) {
-      console.log('Already at snap target so no snap animation is required.');
+      console.log('Already at snap target. No snap animation is required.');
       return;
     }
-
-    console.log('Snap destination %d is %d pixel further.', endP,
-                endP - currentP);
-    
+   
     //TODO consider emitting snap:start event
     isSnapping = true;
     animateSnap(endP, duration, velocity, function onComplete(){
@@ -152,10 +153,11 @@ function ScrollSnap(scrollContainer, opts) {
   */
   function animateSnap(endP, duration, velocity, onCompleteCallback) {
     console.groupCollapsed('snap animation');
-    console.log('animate to scrolltop: %d', endP);
+    console.log('Animate to scroll position %d in %d ms.', endP, Math.round(duration));
 
     //var easing = bezierWithInitialVelocity(velocity, isOvershoot);//(0, angle , 1-angle , 1); //temp easing that takes into account velocity
 
+    duration = Math.round(duration); //roundout duration to ensure last frame is shown
     var startTime = getTime(),
         endTime = startTime + duration;
 
@@ -163,11 +165,11 @@ function ScrollSnap(scrollContainer, opts) {
     var startP = getPosition(),
         lastScrollEventTime = 0;
 
-    expectedScrollTop = startP;
+    expectedScrollP = startP;
 
-    var curve = polynomialCurve(velocity/1000, endP - startP, duration);
+    var snapCurve = polynomialCurve(velocity/1000, endP - startP, duration);
 
-    // RAF loop
+    // Start the RAF loop
     window.requestAnimationFrame(animateSnapLoop);
 
     function animateSnapLoop(hiResTime) {
@@ -203,21 +205,16 @@ function ScrollSnap(scrollContainer, opts) {
      
 
       /*Use polynomial curve*/
-      var step = curve(now - startTime);
+      var step = snapCurve(now - startTime);
       var newY = Math.floor(startP + step);
-
-      //simple overshoot
-      // if (overshootFactor > 0) {
-      //   newY = newY - (amp * overshootFactor * Math.sin(animTime * Math.PI));
-      // }
 
       var currentP = getPosition(); 
       // console.log('diff: %d, scrollTop: %d, newY: %d, frame: %0.2f',
-      //             (expectedScrollTop - currentP), currentP, newY, animTime);
+      //             (expectedScrollP - currentP), currentP, newY, animTime);
       
-      //expectedScrollTop will be used to override native scroll value in scroll events
-      expectedScrollTop = newY; 
-      setPosition(expectedScrollTop);
+      //expectedScrollP overrides native scroll value in scroll events
+      expectedScrollP = newY; 
+      setPosition(expectedScrollP);
     }
 
     function pauseAnimation(){
@@ -262,6 +259,7 @@ function ScrollSnap(scrollContainer, opts) {
   *  - d(duration) is distance.
   */
   function polynomialCurve(initialVelocity, distance, duration) {
+
     var T = duration, T2 = duration * duration, T3 = T2 * T;
     var D = distance;  
 
@@ -271,7 +269,9 @@ function ScrollSnap(scrollContainer, opts) {
 
     return function curve(t) {
       //to ensure we always end up at distance at the end.
-      if (t == duration) return distance;
+      if (t === duration) {
+        return distance;
+      } 
 
       var t2 = t*t, t3 = t*t*t;
       return 0.33 * a * t3 + 0.5 * b * t2 + v0 * t;
@@ -294,13 +294,12 @@ function ScrollSnap(scrollContainer, opts) {
 
 
   function printEvent(event) {
-    var p = getPosition();
-    var t = getTime();
-
-    //console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d', event.type, p, svc.getLastVelocity(), svc.getVelocity());
+    // var p = getPosition();
+    // var t = getTime();
+    // console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d', event.type, p, svc.getLastVelocity(), svc.getVelocity());
   }
 
-  // TODO: move to a utility module
+  // TODO: move into a utility module
   function extend(obj, source) {
     for (var prop in source) {
       obj[prop] = source[prop];
@@ -311,7 +310,7 @@ function ScrollSnap(scrollContainer, opts) {
 
   function printEstimates(){
     //print(velocityCalculator, "** SCROLL");
-    print(svc, "** TOUCH");
+    //print(svc, "** TOUCH");
     
     function print(velocityCalculator, label){
       var velocity = velocityCalculator.getVelocity();
