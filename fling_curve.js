@@ -36,25 +36,21 @@ function FlingCurve(initial_position, initial_velocity, initial_time) {
   var position_offset = initial_position - sign * position(local_start_time);
   var time_offset = local_start_time - initial_time;
 
-  // TODO - get rid of this.
-  var last_position = 0;
-
   this.getPositionAtTime = function(time) {
     if (time > global_end_time) {
       time = global_end_time;
     }
 
     var result = position_offset + sign * position(time + time_offset);
-/*    if (isNaN(result)) {
-      console.log("time + time_offset " + (time + time_offset));
-      result = last_position;
-    }*/
-    last_position = result;
-//    console.log(result);
+
     return result;
   };
 
   this.getFinalPosition = function() {
+
+    console.log("Fling curve = init velocity:%d, time_offset: %f, start: %d, end: %f, init_time:%d",
+      initial_velocity, time_offset, local_start_time, local_end_time, initial_time);
+
     return position_offset + sign * position(local_end_time);
   };
 
