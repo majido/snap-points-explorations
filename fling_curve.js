@@ -48,17 +48,16 @@ function FlingCurve(initial_position, initial_velocity, initial_time) {
 
   this.getFinalPosition = function() {
 
-    console.log("Fling curve = init velocity:%d, time_offset: %f, start: %d, end: %f, init_time:%d",
-      initial_velocity, time_offset, local_start_time, local_end_time, initial_time);
-
+/*    console.log(
+        "Fling curve = init velocity:%d, time_offset: %f, start: %d, end: %f, "
+        "init_time:%d",
+        initial_velocity, time_offset, local_start_time, local_end_time,
+        initial_time);
+*/
     return position_offset + sign * position(local_end_time);
   };
 
-  this.getDuration = function(){
-    return local_end_time - local_start_time;
-  };
+  this.getDuration = function() { return local_end_time - local_start_time; };
 
-  this.doneFling = function(time) {
-    return time > global_end_time;
-  };
+  this.doneFling = function(time) { return time > global_end_time; };
 }
