@@ -55,6 +55,10 @@
                 <option value="scroll">Scroll</option>
                 <option value="touch">Touch</option>
                 </select>
+                <br>
+                <input id='busywork' type='checkbox' value='unchecked' > <label>Add busy work to the main thread.</label>
+                <br>
+                <label>Delay in ms</label> <input id='delay' type='text' value='300' style='width:3em;'>
                 <p style="font-size:smaller">* Use 'scroll' when scroll is in sync (i.e., main thread scrolling) otherwise use 'touch' and expect jitter.</p>
                 <!-- <p>* Use touch only when scroll events are not frequent. E.g. when scroll is happening on UI thread and not the main thread.</p>  -->
                 <br>
@@ -120,6 +124,38 @@
                     hsnap.setOptions({velocityEstimator:ve});
                     vsnap.setOptions({velocityEstimator:ve});
                 });
+                //handle busywork controls
+                var $busywork = document.getElementById('busywork');
+                var timer;
+                $busywork.addEventListener('click', function(event){
+                  if ($busywork.checked) {
+                    if (!timer)
+                       timer = window.setInterval(doSomethingDumb, getDelay() + 200);
+                  } else {
+                    if (timer)
+                      window.clearInterval(timer);
+                  }
+                });
+
+                function getDelay(){
+                  return parseInt(document.getElementById('delay').value);
+                }
+
+                var counter = 0;
+                function doSomethingDumb(){
+                  // This is a particularly dumb example of adding jank to a web page, but in reality
+                  // it can be much more subtle.  Other complex javascript, expensive layout and loading/decoding images
+                  // might take more than 16ms, resulting in at least one dropped frame when scrolling.
+                  counter++;
+                  console.log('Doing something dumb #' + counter);
+                  var start = Date.now();
+                  var end = 0;
+                  var delay = getDelay();
+                  while (end < start + delay)
+                    end = Date.now();
+                  console.log('Done');
+                }
+
         }());
 
         </script>
