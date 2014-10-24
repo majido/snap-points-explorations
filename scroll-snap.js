@@ -35,7 +35,7 @@ function ScrollSnap(scrollContainer, opts) {
   scrollContainer.addEventListener('touchend', touchendHandler);
   //Android does not emit a touchend event when user is flicking instead it
   //emits a touchcancel. Use that to indicate the end of touch instead.
-  scrollContainer.addEventListener('touchcance', touchendHandler);
+  scrollContainer.addEventListener('touchcancel', touchendHandler);
 
   function scrollHandler(event) {
     // use native scroll values in speed estimation
