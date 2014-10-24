@@ -318,8 +318,8 @@ function ScrollSnap(scrollContainer, opts) {
   function printEvent(event) {
     var p = getPosition();
     var t = getTime();
-    console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d',
-    event.type, p, svc.getLastVelocity(), svc.getVelocity());
+    //console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d',
+    //event.type, p, svc.getLastVelocity(), svc.getVelocity());
   }
 
   // TODO: move into a utility module
