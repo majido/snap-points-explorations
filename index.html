@@ -50,7 +50,15 @@
 
         <body>
                 <h1>Implementing Snap Points - Demo</h1>
-            
+                <label>Velocity Estimator<sup>*<sup>:</label>
+                <select id="velocity_estimator">
+                <option value="scroll">Scroll</option>
+                <option value="touch">Touch</option>
+                </select>
+                * Use 'scroll' when scroll is in sync (i.e., main thread scrolling) otherwise use touch and expect jitter.
+                <!-- <p>* Use touch only when scroll events are not frequent. E.g. when scroll is happening on UI thread and not the main thread.</p>  -->
+                <br>
+                <br>
                 <h2>Horizontal scrolling</h2>
                 <div class="scrollContainer horizontal">
                     <div class="item">1</div>
@@ -83,13 +91,14 @@
 
                 var $vscrollContainer = document.querySelector('.scrollContainer.vertical'); 
                 var vsnap = new ScrollSnap($vscrollContainer, {
-                  mode: "vertical",
+                  mode: 'vertical',
+                  velocityEstimator: 'touch',
                   interval: 300 /* snap points are at 300 pixel intervals*/
                 });
 
                 var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
 				var hsnap = new ScrollSnap($hscrollContainer, {
-                  mode: "horizontal",
+                  mode: 'horizontal',
                   interval: 300 /* snap points are at 300 pixel intervals*/
                 });
 
@@ -97,7 +106,12 @@
                 document.addEventListener('scroll', function() {
                   // Make 100% sure chrome knows we have a scroll listener.
                 });
-
+                var $ve = document.querySelector('#velocity_estimator');
+                $ve.addEventListener('change', function(event){
+                    var ve = event.target.value;
+                    hsnap.setOptions({velocityEstimator:ve});
+                    vsnap.setOptions({velocityEstimator:ve});
+                });
         }());
 
         </script>

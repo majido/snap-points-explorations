@@ -14,9 +14,11 @@ function ScrollSnap(scrollContainer, opts) {
   var VELOCITY_THRESHOLD = 300;  // px/s
 
   // default values for options
-  var options = extend({interval: 300, mode: 'horizontal'}, opts);
+  var options = extend({interval: 300, mode: 'horizontal', velocityEstimator:'scroll'}, opts);
 
-  var touchVelocityCalculator = new VelocityCalculator(20);
+  var SCROLL_END_WAIT = options.velocityEstimator == 'scroll'? 3*16 : 10*16;
+
+  var touchvc = new VelocityCalculator(20, 'linear');
   var svc = new VelocityCalculator(5, 'linear');
 
   var didMove = false;
@@ -74,12 +76,10 @@ function ScrollSnap(scrollContainer, opts) {
 
 
     // reset event buffer for direction/velocity calculation
-    touchVelocityCalculator.reset();
+    touchvc.reset();
     svc.reset();
 
-    // TODO we may need to record an initial value in the scroll buffer as well
     recordTouch(event);
-    // recordScroll();
   }
 
   function touchmoveHandler(event) {
@@ -96,24 +96,37 @@ function ScrollSnap(scrollContainer, opts) {
     touchComplete = true;
     didScroll = false;
 
-    // didMove suggest that the touch is a flick. In this case we will allow forthe scroll event to 
-    // take over and handle snapping logic. But if there is no scroll event in 3 frames then take over and
-    // complete the snap with ZERO initial speed.
-    // If there is not move, then this is a single touch with no scroll event expected.  snap immediately.
-    
-    var waitTime = didMove? 3 * 16 : 0;
-    setTimeout(function(){
-        if (!didScroll && !isSnapping) {
-          snap(0);
-        }
-    }, waitTime);
+   if (options.velocityEstimator == 'scroll' ) { 
+      // didMove suggest that the touch is a flick. In this case we will allow forthe scroll event to 
+      // take over and handle snapping logic. But if there is no scroll event in 3 frames then take over and
+      // complete the snap with ZERO initial speed.
+      // If there is not move, then this is a single touch with no scroll event expected.  snap immediately.
+   
+      var waitTime = didMove? 3 * 16 : 0;
+      setTimeout(function(){
+          if (!didScroll && !isSnapping) {
+            snap(0);
+          }
+      }, waitTime);
+
+    } else if(options.velocityEstimator == 'touch'){ 
+      // use touch events to estimate velocity and start the snap ignoring scroll events
+      // This will result in jitter. Only use when scroll event are not synced
+      // and far between
+      var velocity = touchvc.getVelocity() || 200;
+      console.log("Snap and use touch velocity: %d", velocity); 
+      snap(4*velocity);//TODO remove 4x factor
+    } else {
+      console.warn("Unknow velocity estimator!");
+    }
 
   }
 
   function recordTouch(event) {
-    if (event.changedTouches)
-      touchVelocityCalculator.addValue(-event.changedTouches[0].clientY,
-                                       event.timeStamp);
+    if (event.changedTouches){
+      var value = -event.changedTouches[0][options.mode == 'vertical'?'clientY':'clientX'];
+      touchvc.addValue(value, event.timeStamp);
+    }
   }
 
   function recordScroll(event) {
@@ -128,6 +141,8 @@ function ScrollSnap(scrollContainer, opts) {
 
     var currentP = getPosition();
     var time = getTime();
+    if (options.velocityEstimator == 'touch')
+      time = touchvc.getTime();
 
     var endP, duration;
 
@@ -212,7 +227,7 @@ function ScrollSnap(scrollContainer, opts) {
       // Schedule new frames until we know that there is no more scroll for at
       // least 3 frames. This ensures browser fling is fully suppressed. The
       // animation may be stopped when a new touchstart event is registered too
-      if (isSnapping && (now - lastScrollEventTime < 3 * 16 || now < endTime)) {
+      if (isSnapping && (now - lastScrollEventTime < SCROLL_END_WAIT || now < endTime)) {
         window.requestAnimationFrame(animateSnapLoop);
       } else {  // reached the end of the animation
         pauseAnimation();
@@ -331,7 +346,6 @@ function ScrollSnap(scrollContainer, opts) {
     for (var prop in source) {
       obj[prop] = source[prop];
     }
-
     return obj;
   }
 
