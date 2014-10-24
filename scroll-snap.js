@@ -144,15 +144,16 @@ function ScrollSnap(scrollContainer, opts) {
       var snapDuration = Math.abs((endP - flingFinalP) / (velocity / 2 / 100));
       var flingDuration = flingCurve.getDuration() * 1000;  // in ms
       duration = snapDuration + flingDuration;
+      duration = Math.min(duration, 2000);//cap duration to 2 seconds
       console.log(
-        'current: %d, estimated: %d, snap point: %d (duration: %d + %d).',
-        currentP, flingFinalP, endP, flingDuration, snapDuration);
+        'current: %d, estimated: %d, snap point: %d, duration: %d (%d + %d).',
+        currentP, flingFinalP, endP, duration, flingDuration, snapDuration);
 
     } else {
       //there is no fling;
       endP = calculateSnapPoint(currentP);
       duration = 400;
-      console.log('current: %d, snap point: %d (duration: %d).', currentP, endP, duration);
+      console.log('current: %d, snap point: %d, duration: %d.', currentP, endP, duration);
     }
 
  
