@@ -129,8 +129,7 @@
                 var timer;
                 $busywork.addEventListener('click', function(event){
                   if ($busywork.checked) {
-                    if (!timer)
-                       timer = window.setInterval(doSomethingDumb, getDelay() + 200);
+                    timer = window.setInterval(doSomethingDumb, getDelay() + 200);
                   } else {
                     if (timer)
                       window.clearInterval(timer);
