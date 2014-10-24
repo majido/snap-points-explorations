@@ -49,13 +49,13 @@
         </head>
 
         <body>
-                <h1>Implementing Snap Points - Demo</h1>
-                <label>Velocity Estimator<sup>*<sup>:</label>
+                <h1>Snap Points Implementation - Demo</h1>
+                <label>Velocity Estimator<sup>*</sup>:</label>
                 <select id="velocity_estimator">
                 <option value="scroll">Scroll</option>
                 <option value="touch">Touch</option>
                 </select>
-                * Use 'scroll' when scroll is in sync (i.e., main thread scrolling) otherwise use touch and expect jitter.
+                <p style="font-size:smaller">* Use 'scroll' when scroll is in sync (i.e., main thread scrolling) otherwise use 'touch' and expect jitter.</p>
                 <!-- <p>* Use touch only when scroll events are not frequent. E.g. when scroll is happening on UI thread and not the main thread.</p>  -->
                 <br>
                 <br>
@@ -80,6 +80,13 @@
                     <div class="item">2</div>
                     <div class="item">3</div>
                     <div class="item">4</div>
+                    <div class="item">5</div>
+                    <div class="item">6</div>
+                    <div class="item">7</div>
+                    <div class="item">8</div>
+                    <div class="item">9</div>
+                    <div class="item">10</div>
+
                 </div>
 
 
@@ -92,13 +99,14 @@
                 var $vscrollContainer = document.querySelector('.scrollContainer.vertical'); 
                 var vsnap = new ScrollSnap($vscrollContainer, {
                   mode: 'vertical',
-                  velocityEstimator: 'touch',
+                  velocityEstimator: 'scroll',
                   interval: 300 /* snap points are at 300 pixel intervals*/
                 });
 
                 var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
-				var hsnap = new ScrollSnap($hscrollContainer, {
+                var hsnap = new ScrollSnap($hscrollContainer, {
                   mode: 'horizontal',
+                  velocityEstimator: 'scroll',
                   interval: 300 /* snap points are at 300 pixel intervals*/
                 });
 
