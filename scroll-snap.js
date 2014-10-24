@@ -21,6 +21,7 @@ function ScrollSnap(scrollContainer, opts) {
 
   var didMove = false;
   var didScroll = false;
+  var touchComplete = true;
   var isSnapping = false;
 
   // Track scrollTop value calculated by snap point. The value will be used to
@@ -48,11 +49,13 @@ function ScrollSnap(scrollContainer, opts) {
         setPosition(expectedScrollP);
       }
     } else {
-      // trigger snap when scroll has slowed down
-      var scrollVelocity = svc.getVelocity();
-      if (scrollVelocity && Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
-        // console.log("snap with scroll speed: %d", scrollVelocity);
-        snap();
+      if (touchComplete) {
+        // trigger snap when scroll has slowed down
+        var scrollVelocity = svc.getVelocity();
+        if (scrollVelocity && Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
+          // console.log("snap with scroll speed: %d", scrollVelocity);
+          snap(scrollVelocity);
+        }
       }
     }
   }
@@ -62,6 +65,8 @@ function ScrollSnap(scrollContainer, opts) {
 
     didScroll = false;
     didMove = false;
+    touchComplete = false;
+    // stop any snap animation which is in progress
     isSnapping = false;
 
 
@@ -84,14 +89,22 @@ function ScrollSnap(scrollContainer, opts) {
   function touchendHandler(event) {
     printEvent(event);
     recordTouch(event);
+    
+    touchComplete = true;
+    didScroll = false;
 
-    if (didMove) {
-      // this is a flick, ignore it and let the scroll event handle snapping
-      // logic
-    } else {
-      // a single touch with no scroll event expected. snap now!
-      snap();
-    }
+    // didMove suggest that the touch is a flick. In this case we will allow forthe scroll event to 
+    // take over and handle snapping logic. But if there is no scroll event in 3 frames then take over and
+    // complete the snap with ZERO initial speed.
+    // If there is not move, then this is a single touch with no scroll event expected.  snap immediately.
+    
+    var waitTime = didMove? 3 * 16 : 0;
+    setTimeout(function(){
+        if (!didScroll && !isSnapping) {
+          snap(0);
+        }
+    }, waitTime);
+
   }
 
   function recordTouch(event) {
@@ -107,44 +120,47 @@ function ScrollSnap(scrollContainer, opts) {
 
 
   /* Implement custom snap logic */
-  function snap() {
+  function snap(velocity) {
     // printEstimates();
 
     var currentP = getPosition();
-    var velocity = svc.getVelocity() || 0;
     var time = getTime();
 
+    var endP, duration;
 
-    var flingCurve = new FlingCurve(currentP, velocity, time / 1000);
-    var flingFinalP = flingCurve.getFinalPosition();
-    var endP = calculateSnapPoint(flingFinalP);
+    if (velocity !== 0) {
+      var flingCurve = new FlingCurve(currentP, velocity, time / 1000);
+      var flingFinalP = flingCurve.getFinalPosition();
+      endP = calculateSnapPoint(flingFinalP);
 
-    // overshoot if snap is in opposite direction of current movement
-    var isOvershoot = (endP - currentP) * velocity < 0;
+      // overshoot if snap is in opposite direction of current movement
+      var isOvershoot = (endP - currentP) * velocity < 0;
 
-    // Duration should consider additional distance needed to be traveled.
-    // Current value is an estimation
-    var snapDuration =
-        velocity !== 0 ? Math.abs((endP - flingFinalP) / (velocity / 2 / 100)) :
-                         200;
-    var flingDuration = flingCurve.getDuration() * 1000;  // in ms
-    var duration = snapDuration + flingDuration;
-
-
-    console.log(
+      // Duration should consider additional distance needed to be traveled.
+      // Current value is an estimation
+      var snapDuration = Math.abs((endP - flingFinalP) / (velocity / 2 / 100));
+      var flingDuration = flingCurve.getDuration() * 1000;  // in ms
+      duration = snapDuration + flingDuration;
+      console.log(
         'current: %d, estimated: %d, snap point: %d (duration: %d + %d).',
         currentP, flingFinalP, endP, flingDuration, snapDuration);
 
+    } else {
+      //there is no fling;
+      endP = calculateSnapPoint(currentP);
+      duration = 400;
+      console.log('current: %d, snap point: %d (duration: %d).', currentP, endP, duration);
+    }
 
+ 
     if (endP === currentP) {
       console.log('Already at snap target. No snap animation is required.');
       return;
     }
 
-    // TODO consider emitting snap:start event
+    // TODO consider emitting snap:start and snap:complete events
     isSnapping = true;
     animateSnap(endP, duration, velocity, function onComplete() {
-      // TODO consider emitting snap:complete event
       console.log("Snap is complete");
       isSnapping = false;
     });
@@ -288,7 +304,8 @@ function ScrollSnap(scrollContainer, opts) {
 
   var getPosition = function() { return scrollContainer.scrollTop; };
   var getMaxPosition = function() { return scrollContainer.scrollHeight; };
-  var setPosition = function(position) { scrollContainer.scrollTop = position; };
+  var setPosition =
+      function(position) { scrollContainer.scrollTop = position; };
 
   if (options.mode == 'horizontal') {
     getPosition = function() { return scrollContainer.scrollLeft; };
@@ -299,10 +316,10 @@ function ScrollSnap(scrollContainer, opts) {
 
 
   function printEvent(event) {
-    // var p = getPosition();
-    // var t = getTime();
-    // console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d',
-    // event.type, p, svc.getLastVelocity(), svc.getVelocity());
+    var p = getPosition();
+    var t = getTime();
+    console.log('event %s - position: %d, scrollLasV: %d, scrollV: %d',
+    event.type, p, svc.getLastVelocity(), svc.getVelocity());
   }
 
   // TODO: move into a utility module
