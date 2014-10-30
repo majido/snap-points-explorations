@@ -11,155 +11,110 @@
 function ScrollSnap(scrollContainer, opts) {
   "use strict";
 
-  var VELOCITY_THRESHOLD = 300;  // px/s
+  var VELOCITY_THRESHOLD = 500;  // px/s
+  var FD = 16; //frame duration 
 
   // default values for options
   var options = extend({interval: 300, mode: 'horizontal', velocityEstimator:'scroll'}, opts);
 
-  var SCROLL_END_WAIT = options.velocityEstimator == 'scroll'? 3*16 : 10*16;
-
-  var touchvc = new VelocityCalculator(20, 'linear');
-  var svc = new VelocityCalculator(5, 'linear');
-
-  var didMove = false;
-  var didScroll = false;
-  var touchComplete = true;
-  var isSnapping = false;
+  var isSnapping = false,
+      didScroll = false;
 
   // Track scrollTop value calculated by snap point. The value will be used to
   // override scroll value;
   var expectedScrollP;
 
+ 
   // setup event handlers
-  scrollContainer.addEventListener('scroll', scrollHandler);
-  scrollContainer.addEventListener('touchstart', touchstartHandler);
-  scrollContainer.addEventListener('touchmove', touchmoveHandler);
-  scrollContainer.addEventListener('touchend', touchendHandler);
-  //Android does not emit a touchend event when user is flicking instead it
-  //emits a touchcancel. Use that to indicate the end of touch instead.
-  scrollContainer.addEventListener('touchcancel', touchendHandler);
 
-  function scrollHandler(event) {
-    // use native scroll values in speed estimation
-    recordScroll(event);
+  if ('onbeforescroll' in document) {
+    scrollContainer.addEventListener('beforescroll', beforescrollHandler);
+    scrollContainer.addEventListener('scroll', scrollHandler);
+    scrollContainer.addEventListener('touchstart', touchstartHandler);
+    scrollContainer.addEventListener('touchend', touchendHandler);
+    scrollContainer.addEventListener('touchcancel', touchendHandler);
+  } else {
+    console.warn("beforescroll event is not supported.");
+  }
 
-    printEvent(event);
-    didScroll = true;
+  function beforescrollHandler(e){
+    // console.log(
+    //   "p " + getPosition() + ",\t" +
+    //   "dx " + e.deltaX.toFixed(2) + ",\t" +
+    //   "dy " + e.deltaY.toFixed(2) + ",\t" +
+    //   "dg " + e.deltaGranularity.toFixed(2) + ",\t" +
+    //   "vx " + e.velocityX.toFixed(2) + ",\t" +
+    //   "vy " + e.velocityY.toFixed(2) + ",\t" +
+    //   "in " + e.inInertialPhase + ",\t" +
+    //   "en " + e.isEnding);
+
+    e.preventDefault();
 
     if (isSnapping) {
-      // console.log("Snap delta = %d", getPosition() - expectedScrollP);
       // prevent scroll fling by replacing the native the scroll position with
       // the one calculated by snap animation
       if (getPosition() != expectedScrollP) {
         setPosition(expectedScrollP);
       }
     } else {
-      if (touchComplete) {
-        // trigger snap when scroll has slowed down
-        var scrollVelocity = svc.getVelocity();
-        if (scrollVelocity && Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
+      // trigger snap when scroll has slowed down or if it is just finishing  
+      if (e.inInertialPhase || e.isEnding) {
+        var scrollVelocity = -1 * (options.mode == 'horizontal'? e.velocityX: e.velocityY);
+        var deltaP = -1 * (options.mode == 'horizontal'? e.deltaX: e.deltaY);
+
+        if (e.isEnding || Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
+          //test(e.timeStamp, scrollVelocity, deltaP);
           // console.log("snap with scroll speed: %d", scrollVelocity);
-          snap(scrollVelocity);
+          snap(e.timeStamp, scrollVelocity, deltaP);
         }
       }
     }
   }
 
-  function touchstartHandler(event) {
-    printEvent(event);
+  function scrollHandler(event) {
+    didScroll = true;
+  }
 
-    didScroll = false;
-    didMove = false;
-    touchComplete = false;
+  function touchstartHandler(event) {
     // stop any snap animation which is in progress
     isSnapping = false;
-
-
-    // reset event buffer for direction/velocity calculation
-    touchvc.reset();
-    svc.reset();
-
-    recordTouch(event);
-  }
-
-  function touchmoveHandler(event) {
-    printEvent(event);
-    recordTouch(event);
-    didMove = true;
-  }
-
-
-  function touchendHandler(event) {
-    printEvent(event);
-    recordTouch(event);
-    
-    touchComplete = true;
     didScroll = false;
-
-   if (options.velocityEstimator == 'scroll' ) { 
-      // didMove suggest that the touch is a flick. In this case we will allow forthe scroll event to 
-      // take over and handle snapping logic. But if there is no scroll event in 3 frames then take over and
-      // complete the snap with ZERO initial speed.
-      // If there is not move, then this is a single touch with no scroll event expected.  snap immediately.
-   
-      var waitTime = didMove? 3 * 16 : 0;
-      setTimeout(function(){
-          if (!didScroll && !isSnapping) {
-            snap(0);
-          }
-      }, waitTime);
-
-    } else if(options.velocityEstimator == 'touch'){ 
-      // use touch events to estimate velocity and start the snap ignoring scroll events
-      // This will result in jitter. Only use when scroll event are not synced
-      // and far between
-      var velocity = touchvc.getVelocity() || 200;
-      console.log("Snap and use touch velocity: %d", velocity); 
-      snap(4*velocity);//TODO remove 4x factor
-    } else {
-      console.warn("Unknow velocity estimator!");
-    }
-
   }
 
-  function recordTouch(event) {
-    if (event.changedTouches){
-      var value = -event.changedTouches[0][options.mode == 'vertical'?'clientY':'clientX'];
-      touchvc.addValue(value, event.timeStamp);
-    }
+  function touchendHandler(event){
+    // didMove suggest that the touch is a flick. In this case we will allow forthe scroll event to 
+    // take over and handle snapping logic. But if there is no scroll event in 3 frames then take over and
+    // complete the snap with ZERO initial speed.
+    // If there is not move, then this is a single touch with no scroll event expected.  snap immediately.
+ 
+    var waitTime = 3 * FD;
+    setTimeout(function(){
+        if (!didScroll && !isSnapping) {
+          snap(0);
+        }
+    }, waitTime);
+
   }
-
-  function recordScroll(event) {
-    var time = event && event.timeStamp || getTime();
-    svc.addValue(getPosition(), time);
-  }
-
-
+  
   /* Implement custom snap logic */
-  function snap(velocity) {
+  function snap(time, velocity, deltaP) {
     // printEstimates();
 
     var currentP = getPosition();
-    var time = getTime();
-    if (options.velocityEstimator == 'touch')
-      time = touchvc.getTime();
 
     var endP, duration;
 
-    if (velocity !== 0) {
-      var flingCurve = new FlingCurve(currentP, velocity, time / 1000);
+    if (Math.abs(velocity) > 1) {
+      var flingCurve = new FlingCurve(currentP + deltaP, velocity, time / 1000);
       var flingFinalP = flingCurve.getFinalPosition();
-      endP = calculateSnapPoint(flingFinalP);
 
-      // overshoot if snap is in opposite direction of current movement
-      var isOvershoot = (endP - currentP) * velocity < 0;
+      endP = calculateSnapPoint(flingFinalP);
 
       // Duration should consider additional distance needed to be traveled.
       // Current value is an estimation
       var snapDuration = Math.abs((endP - flingFinalP) / (velocity / 2 / 100));
       var flingDuration = flingCurve.getDuration() * 1000;  // in ms
       duration = snapDuration + flingDuration;
-      duration = Math.min(duration, 2000);//cap duration to 2 seconds
       console.log(
         'current: %d, estimated: %d, snap point: %d, duration: %d (%d + %d).',
         currentP, flingFinalP, endP, duration, flingDuration, snapDuration);
@@ -167,9 +122,13 @@ function ScrollSnap(scrollContainer, opts) {
     } else {
       //there is no fling;
       endP = calculateSnapPoint(currentP);
-      duration = 400;
+      duration = Math.abs(endP - currentP)/1;//1 px/ms speed
       console.log('current: %d, snap point: %d, duration: %d.', currentP, endP, duration);
     }
+
+    //cap duration to be between 5 frames to 125 frames 
+    duration = clamp(duration, FD * 5, FD * 125);
+
 
  
     if (endP === currentP) {
@@ -195,61 +154,40 @@ function ScrollSnap(scrollContainer, opts) {
   * @param onCompleteCallback callback is called on completion
   */
   function animateSnap(endP, duration, velocity, onCompleteCallback) {
-    console.groupCollapsed('snap animation');
-    console.log('Animate to scroll position %d in %d ms.', endP,
-                Math.round(duration));
-
-    // var easing = bezierWithInitialVelocity(velocity, isOvershoot);//(0, angle
-    // , 1-angle , 1); //temp easing that takes into account velocity
-
-    duration = Math.round(
-        duration);  // roundout duration to ensure last frame is shown
-    var startTime = getTime(), endTime = startTime + duration;
-
+    // round duration to closest frame number ensure last frame is shown
+    duration = FD * Math.round(duration/FD);
     // current location
-    var startP = getPosition(), lastScrollEventTime = 0;
-
+    var startTime, didLastFrame = false, startP = getPosition();
+    var snapCurve = polynomialCurve(velocity / 1000, endP - startP, duration);
     expectedScrollP = startP;
 
-    var snapCurve = polynomialCurve(velocity / 1000, endP - startP, duration);
+    console.log('Animate to scroll position %d in %d ms.', endP, duration);
+    console.groupCollapsed('snap animation');
 
-    // Start the RAF loop
     window.requestAnimationFrame(animateSnapLoop);
 
-    function animateSnapLoop(hiResTime) {
-      var now = getTime();
+    function animateSnapLoop(now) {
+      now = parseInt(now);
+      startTime = startTime || now;
 
-      if (didScroll) {
-        didScroll = false;
-        lastScrollEventTime = now;
-      }
+      var progress = now - startTime;
+      progress = Math.min(progress, duration);
 
       // Schedule new frames until we know that there is no more scroll for at
       // least 3 frames. This ensures browser fling is fully suppressed. The
       // animation may be stopped when a new touchstart event is registered too
-      if (isSnapping && (now - lastScrollEventTime < SCROLL_END_WAIT || now < endTime)) {
+      if (isSnapping && !didLastFrame) {
         window.requestAnimationFrame(animateSnapLoop);
       } else {  // reached the end of the animation
         pauseAnimation();
         return;
       }
 
-      // ensures the last frame is always executed
-      now = Math.min(now, endTime);
-
-      // apply easing by modifying animation timing using animFrame
-      /* For bezier curve
-      // time is the time between 0 to 1
-      var animTime = (now - startTime) / duration;
-      animTime = easing(animTime);
-      var amp = endP - startP;
-      var step = amp * animTime;
-      var newY = Math.floor(startP + step);
-      */
-
+      didLastFrame = (progress == duration);
+      console.log("progress", progress);
 
       /*Use polynomial curve*/
-      var step = snapCurve(now - startTime);
+      var step = snapCurve(progress);
       var newY = Math.floor(startP + step);
 
       var currentP = getPosition();
@@ -295,10 +233,11 @@ function ScrollSnap(scrollContainer, opts) {
   }
 
   /**
-  *The following curve satisfies these conditions:
-  * * V is continous
-  *  - V starts at v0, and ends 0 at duration.
-  *  - d(duration) is distance.
+  * Constructs a polynomial curve D(t) which satisfies these conditions:
+  *  - D(0) = 0 and D(duration)= distance.
+  *  - Velocity (dD/dt) is continous
+  *  - Velocity is v0 (i.e. initialVelocity) at start (t=0) and 0 at the end (t=duration).
+  * 
   */
   function polynomialCurve(initialVelocity, distance, duration) {
     var T = duration, T2 = duration * duration, T3 = T2 * T;
@@ -306,6 +245,9 @@ function ScrollSnap(scrollContainer, opts) {
 
     var v0 = initialVelocity, a = 3 * v0 / T2 - 6 * D / T3,
         b = 6 * D / T2 - 4 * v0 / T;
+
+    var formula = "0.33*"+a+"*t^3+0.5*"+b+"*t^2+"+v0+"*t, "+distance;
+    console.log('Motion Curve: http://www.google.com/?q='+encodeURIComponent(formula));
 
     return function curve(t) {
       // to ensure we always end up at distance at the end.
@@ -347,6 +289,10 @@ function ScrollSnap(scrollContainer, opts) {
       obj[prop] = source[prop];
     }
     return obj;
+  }
+
+  function clamp(num, min, max){
+    return Math.min(Math.max(num, min), max);
   }
 
   function printEstimates() {
