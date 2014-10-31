@@ -1,0 +1,131 @@
+<html>
+
+        <head>
+                <title>Scroll Snap-Points demo</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+                <style type="text/css">
+                    .scrollContainer.horizontal {
+                        height: 100%;
+                        width: 100%;
+                        display: -webkit-flex;
+                        display: flex;
+                        flex-direction: row;
+                        -webkit-flex-direction: row;
+                        flex-wrap: nowrap;
+                        -webkit-flex-wrap: nowrap;
+                        align-items: center;
+                        -webkit-align-items: center;
+
+                        overflow-x: scroll;
+                        overflow-y: hidden;
+
+                        background-color: black;
+                    }
+                    .item {
+                        box-sizing: border-box;
+                        flex-shrink: 0; /* prevent flexbox to shrink images*/
+                        -webkit-flex-shrink: 0;
+                        background-color: black;
+                        padding: 10px;
+
+                        text-align: center;
+                        vertical-align: middle;
+                        font-size: 10em;
+                    }
+
+            
+                </style>
+                <script src="bower_components/regression-js/src/regression.js" > </script>
+                <script src="bower_components/bezier-easing/bezier-easing.js" > </script>
+
+                <script src="velocity_calculator.js" > </script>
+                <script src="fling_curve.js" > </script>
+
+                <script src="scroll-snap.js" > </script>
+
+        </head>
+
+        <body>
+            <div class="scrollContainer horizontal">
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/320/320/cats/"></div>
+                <div class="item"><img src="http://lorempixel.com/350/300/cats/"></div>
+            </div>
+        </body>
+
+        <script>
+        (function(){
+                "use strict";
+
+                var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
+                var hsnap = new ScrollSnap($hscrollContainer, {
+                  mode: 'horizontal'
+                });
+
+                // TODO: consult with tdresser to ensure if this has any real effect
+                document.addEventListener('scroll', function() {
+                  // Make 100% sure chrome knows we have a scroll listener.
+                });
+               
+             
+        }());
+
+        </script>
+</html>
