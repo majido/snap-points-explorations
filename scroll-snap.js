@@ -15,7 +15,8 @@ function ScrollSnap(scrollContainer, opts) {
   var FD = 16; //frame duration 
 
   // default values for options
-  var options = extend({interval: 300, mode: 'horizontal', velocityEstimator:'scroll'}, opts);
+  var options = extend({mode: 'horizontal', velocityEstimator:'scroll'}, opts);
+
 
   var isSnapping = false,
       didScroll = false;
@@ -206,7 +207,9 @@ function ScrollSnap(scrollContainer, opts) {
   }
 
 
-  function calculateSnapPoint(landingP) {
+  var calculateSnapPoint = options.interval ? intervalSnap : elementSnap;
+
+  function intervalSnap(landingP) {
     var interval = options.interval;
     var max = getMaxPosition();
 
@@ -215,6 +218,63 @@ function ScrollSnap(scrollContainer, opts) {
 
     return closest;
   }
+
+  var snapPoints;
+  function elementSnap(landingP) {
+
+    if (!snapPoints) {
+      snapPoints = [0]
+        .concat(getChildOffsets(scrollContainer))
+        .concat([getMaxPosition()]);
+    }
+
+    var closest = binarySearch(snapPoints, landingP);
+    console.log(closest);
+    return closest;
+  }
+
+  /** compute snap points based on children offsets */
+  function getChildOffsets($el){
+    var result = [];
+    for (var i = 0, len = $el.children.length; i < len; i++){
+      var child = $el.children[i],
+          offset = getOffset(child);
+      //If offsetParent is different than the given element then adjust accordingly
+      offset -= child.offsetParent == $el ? 0 : getOffset($el);
+      result.push(offset);
+    }
+
+    return result;
+  }
+
+  /*
+  * Finds the closest array item to the value.
+  * Arrary should be sorted ascending.
+  */
+  function binarySearch(array, value){
+
+     function findClosest(left, right) {
+      if (right == left) 
+        return array[value];
+
+      if (right - left == 1) {
+        if (Math.abs(array[right] - value) < Math.abs(array[left] - value))
+          return array[right];
+        else 
+          return array[left];
+      }
+
+      var middle = parseInt((right + left) / 2);
+
+      if (value >= array[middle]) 
+        return findClosest(middle, right);
+      else
+        return findClosest(left, middle);
+    }
+
+    return findClosest(0, array.length - 1);
+  }
+
 
   // based on chromium ./cc/animation/scroll_offset_animation_curve.cc
   function bezierWithInitialVelocity(velocity, isInverted) {
@@ -267,13 +327,14 @@ function ScrollSnap(scrollContainer, opts) {
   var getMaxPosition = function() { return scrollContainer.scrollHeight; };
   var setPosition =
       function(position) { scrollContainer.scrollTop = position; };
+  var getOffset = function($el) { return $el.offsetTop; };
 
   if (options.mode == 'horizontal') {
     getPosition = function() { return scrollContainer.scrollLeft; };
     getMaxPosition = function() { return scrollContainer.scrollWidth; };
     setPosition = function(position) { scrollContainer.scrollLeft = position; };
+    getOffset = function($el) { return $el.offsetLeft; };
   }
-
 
 
   function printEvent(event) {

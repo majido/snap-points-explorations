@@ -5,8 +5,8 @@
                 <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
                 <style type="text/css">
                     .scrollContainer.vertical{
-                        height: 300px;
-                        width: 300px;
+                        height: 420px;
+                        width: 420px;
                         display: -webkit-flex;
                         display: flex;
                         flex-direction: column;
@@ -14,29 +14,39 @@
                         flex-wrap: nowrap;
                         -webkit-flex-wrap: nowrap;
 
+                        align-items: center;
+                        -webkit-align-items: center;
+                        
                         overflow-x: hidden;
                         overflow-y: scroll;
+
+                        background-color: black;
                     }
 
                     .scrollContainer.horizontal {
-                        height: 300px;
-                        width: 300px;
+                        height: 420px;
+                        width: 420px;
                         display: -webkit-flex;
                         display: flex;
                         flex-direction: row;
                         -webkit-flex-direction: row;
                         flex-wrap: nowrap;
                         -webkit-flex-wrap: nowrap;
+                        align-items: center;
+                        -webkit-align-items: center;
 
                         overflow-x: scroll;
                         overflow-y: hidden;
+
+                        background-color: black;
                     }
                     .item {
-                        box-sizing:border-box;
-                        min-width: 100%;
-                        min-height: 100%;
-                        border: solid;
-                        background-color: eee;
+                        box-sizing: border-box;
+                        flex-shrink: 0; /* prevent flexbox to shrink images*/
+                        -webkit-flex-shrink: 0;
+                        background-color: black;
+                        padding: 10px;
+
                         text-align: center;
                         vertical-align: middle;
                         font-size: 10em;
@@ -56,47 +66,39 @@
 
         <body>
                 <h1>Snap Points Implementation - Demo</h1>
-                <label>Velocity Estimator<sup>*</sup>:</label>
-                <select id="velocity_estimator">
-                <option value="scroll">Scroll</option>
-                <option value="touch">Touch</option>
-                </select>
                 <br>
                 <input id='busywork' type='checkbox' value='unchecked' > <label>Add busy work to the main thread.</label>
                 <br>
                 <label>Delay in ms</label> <input id='delay' type='text' value='300' style='width:3em;'>
-                <p style="font-size:smaller">* Use 'scroll' when scroll is in sync (i.e., main thread scrolling) otherwise use 'touch' and expect jitter.</p>
-                <!-- <p>* Use touch only when scroll events are not frequent. E.g. when scroll is happening on UI thread and not the main thread.</p>  -->
                 <br>
                 <br>
                 <h2>Horizontal scrolling</h2>
                 <div class="scrollContainer horizontal">
-                    <div class="item">1</div>
-                    <div class="item">2</div>
-                    <div class="item">3</div>
-                    <div class="item">4</div>
-                    <div class="item">5</div>
-                    <div class="item">6</div>
-                    <div class="item">7</div>
-                    <div class="item">8</div>
-                    <div class="item">9</div>
-                    <div class="item">10</div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/400/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/400/400/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/200/200/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/350/350/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/600/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/cats/"></div>
                 </div>
 
                 <h2>Vertical scrolling</h2>
 
                 <div class="scrollContainer vertical">
-                    <div class="item">1</div>
-                    <div class="item">2</div>
-                    <div class="item">3</div>
-                    <div class="item">4</div>
-                    <div class="item">5</div>
-                    <div class="item">6</div>
-                    <div class="item">7</div>
-                    <div class="item">8</div>
-                    <div class="item">9</div>
-                    <div class="item">10</div>
-
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/400/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/400/400/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/200/200/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/400/400/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
+                    <div class="item"><img src="http://lorempixel.com/300/300/city/"></div>
                 </div>
 
 
@@ -109,27 +111,19 @@
                 var $vscrollContainer = document.querySelector('.scrollContainer.vertical'); 
                 var vsnap = new ScrollSnap($vscrollContainer, {
                   mode: 'vertical',
-                  velocityEstimator: 'scroll',
-                  interval: 300 /* snap points are at 300 pixel intervals*/
+                  velocityEstimator: 'scroll'
                 });
 
                 var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
                 var hsnap = new ScrollSnap($hscrollContainer, {
-                  mode: 'horizontal',
-                  velocityEstimator: 'scroll',
-                  interval: 300 /* snap points are at 300 pixel intervals*/
+                  mode: 'horizontal'
                 });
 
                 // TODO: consult with tdresser to ensure if this has any real effect
                 document.addEventListener('scroll', function() {
                   // Make 100% sure chrome knows we have a scroll listener.
                 });
-                var $ve = document.querySelector('#velocity_estimator');
-                $ve.addEventListener('change', function(event){
-                    var ve = event.target.value;
-                    hsnap.setOptions({velocityEstimator:ve});
-                    vsnap.setOptions({velocityEstimator:ve});
-                });
+               
                 //handle busywork controls
                 var $busywork = document.getElementById('busywork');
                 var timer;
