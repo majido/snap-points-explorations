@@ -48,36 +48,33 @@ function ScrollSnap(scrollContainer, opts) {
     console.warn("beforescroll event is not supported.");
   }
 
-  function beforescrollHandler(e) {
+  function beforescrollHandler(event) {
     // console.log(
     //   "p " + getPosition() + ",\t" +
-    //   "dx " + e.deltaX.toFixed(2) + ",\t" +
-    //   "dy " + e.deltaY.toFixed(2) + ",\t" +
-    //   "dg " + e.deltaGranularity.toFixed(2) + ",\t" +
-    //   "vx " + e.velocityX.toFixed(2) + ",\t" +
-    //   "vy " + e.velocityY.toFixed(2) + ",\t" +
-    //   "in " + e.inInertialPhase + ",\t" +
-    //   "en " + e.isEnding);
+    //   "dx " + event.deltaX.toFixed(2) + ",\t" +
+    //   "dy " + event.deltaY.toFixed(2) + ",\t" +
+    //   "dg " + event.deltaGranularity.toFixed(2) + ",\t" +
+    //   "vx " + event.velocityX.toFixed(2) + ",\t" +
+    //   "vy " + event.velocityY.toFixed(2) + ",\t" +
+    //   "in " + event.inInertialPhase + ",\t" +
+    //   "en " + event.isEnding);
 
-    e.preventDefault();
+    event.preventDefault();
 
     if (isSnapping) {
-      // prevent scroll fling by replacing the native the scroll position with
-      // the one calculated by snap animation
-      if (getPosition() != expectedScrollP) {
-        setPosition(expectedScrollP);
-      }
+      //prevent native scroll by consuming the delta
+      event.consumeDelta(event.deltaX, event.deltaY);
     } else {
       // trigger snap when scroll has slowed down or if it is just finishing
-      if (e.inInertialPhase || e.isEnding) {
+      if (event.inInertialPhase || event.isEnding) {
         var scrollVelocity =
-            -1 * (options.mode == 'horizontal' ? e.velocityX : e.velocityY);
-        var deltaP = -1 * (options.mode == 'horizontal' ? e.deltaX : e.deltaY);
+            -1 * (options.mode == 'horizontal' ? event.velocityX : event.velocityY);
+        var deltaP = -1 * (options.mode == 'horizontal' ? event.deltaX : event.deltaY);
 
-        if (e.isEnding || Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
-          // test(e.timeStamp, scrollVelocity, deltaP);
+        if (event.isEnding || Math.abs(scrollVelocity) < VELOCITY_THRESHOLD) {
+          // test(event.timeStamp, scrollVelocity, deltaP);
           // console.log("snap with scroll speed: %d", scrollVelocity);
-          snap(e.timeStamp, scrollVelocity, deltaP);
+          snap(event.timeStamp, scrollVelocity, deltaP);
         }
       }
     }

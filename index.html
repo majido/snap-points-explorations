@@ -111,7 +111,8 @@
                 var $vscrollContainer = document.querySelector('.scrollContainer.vertical'); 
                 var vsnap = new ScrollSnap($vscrollContainer, {
                   mode: 'vertical',
-                  velocityEstimator: 'scroll'
+                  velocityEstimator: 'scroll',
+                  snapDestination: 'center'
                 });
 
                 var $hscrollContainer = document.querySelector('.scrollContainer.horizontal'); 
